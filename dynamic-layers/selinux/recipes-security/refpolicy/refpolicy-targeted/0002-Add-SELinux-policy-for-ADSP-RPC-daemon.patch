@@ -1,0 +1,109 @@
+From d9d7a8c487493a69be68b87e749579bdc8735814 Mon Sep 17 00:00:00 2001
+From: Vinayak Katoch <vkatoch@qti.qualcomm.com>
+Date: Wed, 7 Jan 2026 15:46:25 +0530
+Subject: [PATCH 2/5] Add SELinux policy for ADSP RPC daemon
+
+Define security policy for adsprpcd daemon (/usr/bin/adsprpcd) that
+manages FastRPC communication with the ADSP subsystem.
+
+Create new policy module qcom_adsprpcd with daemon domain and required
+permissions for ADSP device access, DMA operations, and system integration.
+
+- qcom_adsprpcd.fc: Label adsprpcd executable as qcom_adsprpcd_exec_t
+- qcom_adsprpcd.te: Define qcom_adsprpcd_t daemon domain with permissions:
+  * Unix datagram socket creation and sendto for logging
+  * ADSP device access (secure /dev/fastrpc-adsp-secure and non-secure
+    /dev/fastrpc-adsp) via qcom_adsp_*_read_device() interfaces
+  * DMA heap device access (/dev/dma_heap/system) for shared memory
+  * Sysfs reading for device tree model information
+  * Configuration file reading from /usr/share/qcom/
+  * Directory watching (inotify) for /dev, /usr/lib, and /usr/share
+  * Runtime directory search and syslog messaging
+  * Localization file access
+- qcom_adsprpcd.if: Placeholder interface file for future extensions
+
+The policy uses interface macros from devices.if for clean abstraction
+and maintainability. All device access permissions (getattr, ioctl) are
+provided automatically through read_chr_files_pattern() and
+rw_chr_files_pattern() macros.
+
+Signed-off-by: Vinayak Katoch <vkatoch@qti.qualcomm.com>
+
+Upstream-Status: Inappropriate [Qualcomm specific change]
+---
+ policy/modules/services/qcom_adsprpcd.fc |  4 +++
+ policy/modules/services/qcom_adsprpcd.if |  6 ++++
+ policy/modules/services/qcom_adsprpcd.te | 37 ++++++++++++++++++++++++
+ 3 files changed, 47 insertions(+)
+ create mode 100644 policy/modules/services/qcom_adsprpcd.fc
+ create mode 100644 policy/modules/services/qcom_adsprpcd.if
+ create mode 100644 policy/modules/services/qcom_adsprpcd.te
+
+diff --git a/policy/modules/services/qcom_adsprpcd.fc b/policy/modules/services/qcom_adsprpcd.fc
+new file mode 100644
+index 000000000..c54b6d6bb
+--- /dev/null
++++ b/policy/modules/services/qcom_adsprpcd.fc
+@@ -0,0 +1,4 @@
++# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
++# SPDX-License-Identifier: BSD-3-Clause-Clear
++
++/usr/bin/adsprpcd -- gen_context(system_u:object_r:qcom_adsprpcd_exec_t,s0)
+diff --git a/policy/modules/services/qcom_adsprpcd.if b/policy/modules/services/qcom_adsprpcd.if
+new file mode 100644
+index 000000000..9b5b42ea2
+--- /dev/null
++++ b/policy/modules/services/qcom_adsprpcd.if
+@@ -0,0 +1,6 @@
++# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
++# SPDX-License-Identifier: BSD-3-Clause-Clear
++
++## <summary>
++## qcom_adsprpcd
++## </summary>
+diff --git a/policy/modules/services/qcom_adsprpcd.te b/policy/modules/services/qcom_adsprpcd.te
+new file mode 100644
+index 000000000..779727173
+--- /dev/null
++++ b/policy/modules/services/qcom_adsprpcd.te
+@@ -0,0 +1,37 @@
++# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
++# SPDX-License-Identifier: BSD-3-Clause-Clear
++
++policy_module(qcom_adsprpcd,1.0)
++
++type qcom_adsprpcd_t;
++type qcom_adsprpcd_exec_t;
++
++init_daemon_domain(qcom_adsprpcd_t, qcom_adsprpcd_exec_t)
++
++# Unix domain socket permissions for logging
++allow qcom_adsprpcd_t self:unix_dgram_socket { create_socket_perms sendto };
++
++# Access to FastRPC ADSP devices
++qcom_adsp_secure_read_device(qcom_adsprpcd_t)
++qcom_adsp_read_device(qcom_adsprpcd_t)
++
++# Access to DMA heap device (/dev/dma_heap/system)
++dev_rw_dma_dev(qcom_adsprpcd_t)
++
++# Read device tree model information from sysfs
++dev_read_sysfs(qcom_adsprpcd_t)
++
++# Read files in /usr/share/qcom/
++files_read_usr_files(qcom_adsprpcd_t)
++
++# Watch directories for DSP library changes
++dev_watch_dev_dirs(qcom_adsprpcd_t)
++libs_watch_shared_libs_dirs(qcom_adsprpcd_t)
++files_watch_usr_dirs(qcom_adsprpcd_t)
++
++# Logging support
++init_search_runtime(qcom_adsprpcd_t)
++logging_send_syslog_msg(qcom_adsprpcd_t)
++
++# Read localization files
++miscfiles_read_localization(qcom_adsprpcd_t)
+-- 
+2.34.1
+

@@ -1,0 +1,237 @@
+From 3395d8852c0e07728b49166c787765a1795f3ccb Mon Sep 17 00:00:00 2001
+From: Vinayak Katoch <vkatoch@qti.qualcomm.com>
+Date: Wed, 7 Jan 2026 15:41:04 +0530
+Subject: [PATCH 1/5] Add SELinux policy for Qualcomm FastRPC DSP devices
+
+Define security contexts and access controls for Qualcomm FastRPC
+device nodes (/dev/fastrpc-*) used for DSP offload communication.
+
+Introduce 8 device types for four DSP subsystems (ADSP, CDSP, GDSP,
+SDSP) with secure and non-secure variants, along with corresponding
+access interfaces.
+
+- devices.fc: Add file contexts for 12 FastRPC character device nodes
+- devices.te: Declare 8 device types (qcom_*_device_t and
+  qcom_*_secure_device_t) for each DSP subsystem
+- devices.if: Add 8 read access interfaces (qcom_*_read_device and
+  qcom_*_secure_read_device) using read_chr_files_pattern
+
+Signed-off-by: Vinayak Katoch <vkatoch@qti.qualcomm.com>
+
+Upstream-Status: Inappropriate [Qualcomm specific change]
+---
+ policy/modules/kernel/devices.fc |  14 +++
+ policy/modules/kernel/devices.if | 144 +++++++++++++++++++++++++++++++
+ policy/modules/kernel/devices.te |  25 ++++++
+ 3 files changed, 183 insertions(+)
+
+diff --git a/policy/modules/kernel/devices.fc b/policy/modules/kernel/devices.fc
+index ab33cde0a..9ff074950 100644
+--- a/policy/modules/kernel/devices.fc
++++ b/policy/modules/kernel/devices.fc
+@@ -253,3 +253,17 @@ ifdef(`distro_redhat',`
+ ifdef(`distro_gentoo',`
+ /var/empty/dev		-d	gen_context(system_u:object_r:device_t,s0)
+ ')
++
++# FastRPC nodes
++/dev/fastrpc-adsp-secure -c gen_context(system_u:object_r:qcom_adsp_secure_device_t,s0)
++/dev/fastrpc-cdsp-secure -c gen_context(system_u:object_r:qcom_cdsp_secure_device_t,s0)
++/dev/fastrpc-cdsp1-secure -c gen_context(system_u:object_r:qcom_cdsp_secure_device_t,s0)
++/dev/fastrpc-gdsp0-secure -c gen_context(system_u:object_r:qcom_gdsp_secure_device_t,s0)
++/dev/fastrpc-gdsp1-secure -c gen_context(system_u:object_r:qcom_gdsp_secure_device_t,s0)
++/dev/fastrpc-sdsp-secure -c gen_context(system_u:object_r:qcom_sdsp_secure_device_t,s0)
++/dev/fastrpc-adsp -c gen_context(system_u:object_r:qcom_adsp_device_t,s0)
++/dev/fastrpc-cdsp -c gen_context(system_u:object_r:qcom_cdsp_device_t,s0)
++/dev/fastrpc-cdsp1 -c gen_context(system_u:object_r:qcom_cdsp_device_t,s0)
++/dev/fastrpc-gdsp0 -c gen_context(system_u:object_r:qcom_gdsp_device_t,s0)
++/dev/fastrpc-gdsp1 -c gen_context(system_u:object_r:qcom_gdsp_device_t,s0)
++/dev/fastrpc-sdsp -c gen_context(system_u:object_r:qcom_sdsp_device_t,s0)
+diff --git a/policy/modules/kernel/devices.if b/policy/modules/kernel/devices.if
+index dd8072f37..a2f584aa2 100644
+--- a/policy/modules/kernel/devices.if
++++ b/policy/modules/kernel/devices.if
+@@ -6167,3 +6167,147 @@ interface(`dev_unconfined',`
+ 
+ 	typeattribute $1 devices_unconfined_type;
+ ')
++
++########################################
++## <summary>
++##	Allow read/ioctl/open for adsp secure device.
++## </summary>
++## <param name="domain">
++##	<summary>
++##	Domain allowed access.
++##	</summary>
++## </param>
++#
++interface(`qcom_adsp_secure_read_device',`
++	gen_require(`
++		type device_t, qcom_adsp_secure_device_t;
++	')
++
++	read_chr_files_pattern($1, device_t, qcom_adsp_secure_device_t)
++')
++
++########################################
++## <summary>
++##	Allow read/ioctl/open for cdsp secure device.
++## </summary>
++## <param name="domain">
++##	<summary>
++##	Domain allowed access.
++##	</summary>
++## </param>
++#
++interface(`qcom_cdsp_secure_read_device',`
++	gen_require(`
++		type device_t, qcom_cdsp_secure_device_t;
++	')
++
++	read_chr_files_pattern($1, device_t, qcom_cdsp_secure_device_t)
++')
++
++########################################
++## <summary>
++##	Allow read/ioctl/open for gdsp secure device.
++## </summary>
++## <param name="domain">
++##	<summary>
++##	Domain allowed access.
++##	</summary>
++## </param>
++#
++interface(`qcom_gdsp_secure_read_device',`
++	gen_require(`
++		type device_t, qcom_gdsp_secure_device_t;
++	')
++
++	read_chr_files_pattern($1, device_t, qcom_gdsp_secure_device_t)
++')
++
++########################################
++## <summary>
++##	Allow read/ioctl/open for sdsp secure device.
++## </summary>
++## <param name="domain">
++##	<summary>
++##	Domain allowed access.
++##	</summary>
++## </param>
++#
++interface(`qcom_sdsp_secure_read_device',`
++	gen_require(`
++		type device_t, qcom_sdsp_secure_device_t;
++	')
++
++	read_chr_files_pattern($1, device_t, qcom_sdsp_secure_device_t)
++')
++
++########################################
++## <summary>
++##	Allow read/ioctl/open for adsp device.
++## </summary>
++## <param name="domain">
++##	<summary>
++##	Domain allowed access.
++##	</summary>
++## </param>
++#
++interface(`qcom_adsp_read_device',`
++	gen_require(`
++		type device_t, qcom_adsp_device_t;
++	')
++
++	read_chr_files_pattern($1, device_t, qcom_adsp_device_t)
++')
++
++########################################
++## <summary>
++##	Allow read/ioctl/open for cdsp device.
++## </summary>
++## <param name="domain">
++##	<summary>
++##	Domain allowed access.
++##	</summary>
++## </param>
++#
++interface(`qcom_cdsp_read_device',`
++	gen_require(`
++		type device_t, qcom_cdsp_device_t;
++	')
++
++	read_chr_files_pattern($1, device_t, qcom_cdsp_device_t)
++')
++
++########################################
++## <summary>
++##	Allow read/ioctl/open for gdsp device.
++## </summary>
++## <param name="domain">
++##	<summary>
++##	Domain allowed access.
++##	</summary>
++## </param>
++#
++interface(`qcom_gdsp_read_device',`
++	gen_require(`
++		type device_t, qcom_gdsp_device_t;
++	')
++
++	read_chr_files_pattern($1, device_t, qcom_gdsp_device_t)
++')
++
++########################################
++## <summary>
++##	Allow read/ioctl/open for sdsp device.
++## </summary>
++## <param name="domain">
++##	<summary>
++##	Domain allowed access.
++##	</summary>
++## </param>
++#
++interface(`qcom_sdsp_read_device',`
++	gen_require(`
++		type device_t, qcom_sdsp_device_t;
++	')
++
++	read_chr_files_pattern($1, device_t, qcom_sdsp_device_t)
++')
+diff --git a/policy/modules/kernel/devices.te b/policy/modules/kernel/devices.te
+index 84c0069ab..2f733b108 100644
+--- a/policy/modules/kernel/devices.te
++++ b/policy/modules/kernel/devices.te
+@@ -467,3 +467,28 @@ allow devices_unconfined_type self:capability sys_rawio;
+ allow devices_unconfined_type device_node:blk_file { execmod execute manage_blk_file_perms map mounton quotaon relabel_blk_file_perms watch watch_mount watch_reads watch_sb watch_with_perm };
+ allow devices_unconfined_type device_node:chr_file { execmod execute manage_chr_file_perms map mounton quotaon relabel_chr_file_perms watch watch_mount watch_reads watch_sb watch_with_perm };
+ allow devices_unconfined_type mtrr_device_t:file { entrypoint exec_file_perms execmod manage_file_perms mounton quotaon relabel_file_perms watch watch_mount watch_reads watch_sb watch_with_perm };
++
++# FastRPC nodes
++type qcom_adsp_secure_device_t;
++dev_node(qcom_adsp_secure_device_t)
++
++type qcom_cdsp_secure_device_t;
++dev_node(qcom_cdsp_secure_device_t)
++
++type qcom_gdsp_secure_device_t;
++dev_node(qcom_gdsp_secure_device_t)
++
++type qcom_sdsp_secure_device_t;
++dev_node(qcom_sdsp_secure_device_t)
++
++type qcom_adsp_device_t;
++dev_node(qcom_adsp_device_t)
++
++type qcom_cdsp_device_t;
++dev_node(qcom_cdsp_device_t)
++
++type qcom_gdsp_device_t;
++dev_node(qcom_gdsp_device_t)
++
++type qcom_sdsp_device_t;
++dev_node(qcom_sdsp_device_t)
+-- 
+2.34.1
+
